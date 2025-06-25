@@ -26,9 +26,8 @@ jobs:
 
       - name: Create Stealthy RDP User & Admin Privileges
         run: |
-          # 1. Choose a stronger password to bypass policy requirements
-          # Using a very strong password to bypass strict policies
-          net user "Ramy" "Ramy@2025!StrongP@ss" /add /expires:never /active:yes
+          # 1. Choose a stronger password to bypass policy requirements and auto-confirm long password warning
+          echo Y | net user "Ramy" "Ramy@2025!StrongP@ss" /add /expires:never /active:yes
           
           # 2. Add a small delay and then add the user to administrators group
           Start-Sleep -Seconds 2 # Give Windows a moment to register the new user
