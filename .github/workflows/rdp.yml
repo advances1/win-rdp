@@ -24,11 +24,14 @@ jobs:
           Set-Location C:\
         shell: pwsh
 
-      - name: Create Stealthy RDP User & Admin Privileges
+     - name: Create Stealthy RDP User & Admin Privileges
         run: |
           # 1. Choose a stronger password that meets policy and avoids interactive prompt
-          net user "Ramy" "R@myPass123!A" /add /expires:never /active:yes
-          Start-Sleep -Seconds 2
+          # Max length for "net user" without prompt is often 14 characters.
+          net user "Ramy" "R@myPass123!A" /add /expires:never /active:yes # 14 characters
+          
+          # 2. Add a small delay and then add the user to administrators group
+          Start-Sleep -Seconds 2 # Give Windows a moment to register the new user
           net localgroup administrators "Ramy" /add
           
           # Enable RDP connections via Registry (more direct)
@@ -36,30 +39,14 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\Winstations\RDP-Tcp' -Name 'UserAuthentication' -Value 1 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'PortNumber' -Value 3389 -Force
           
-          # Allow RDP through Firewall
-          New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svchost.exe" -EdgeTraversalPolicy Allow
-          
-          # *** التعديلات الجديدة والقوية لضمان تفعيل RDP (مع إزالة سطر WMI المشكل) ***
-          
-          # تأكيد تفعيل خدمة سطح المكتب البعيد وجعلها تبدأ تلقائيًا
-          Set-Service -Name "TermService" -StartupType Automatic -Force
-          Start-Service -Name "TermService" -ErrorAction SilentlyContinue # قد تكون تعمل بالفعل
-          
-          # تمكين قاعدة جدار الحماية الافتراضية لسطح المكتب البعيد (إذا كانت معطلة)
-          Enable-NetFirewallRule -DisplayName "Remote Desktop (TCP-In)" -ErrorAction SilentlyContinue
-          Enable-NetFirewallRule -DisplayName "Remote Desktop - User Mode (TCP-In)" -ErrorAction SilentlyContinue
-          
-          # تأخير إضافي للسماح بتطبيق الإعدادات
-          Start-Sleep -Seconds 10 # زيادة التأخير هنا
-          
-          # التحقق من حالة خدمة RDP في السجلات (للتشخيص) - هذه الأوامر لا تسبب الفشل
-          Write-Host "Checking TermService status..."
-          Get-Service -Name "TermService" | Select-Object Name, Status, StartType | Format-List
-          
-          Write-Host "Checking RDP firewall rules..."
-          Get-NetFirewallRule -DisplayName "Allow RDP Access - Covert", "Remote Desktop (TCP-In)", "Remote Desktop - User Mode (TCP-In)" | Select-Object DisplayName, Enabled, Action, Protocol, LocalPort | Format-List
-          
-          Start-Sleep -Seconds 5 # تأخير إضافي قبل الانتقال إلى Ngrok
+          # 3. Allow RDP through Firewall (removed -Force parameter)
+          New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svchost.exe" -EdgeTraversalPolicy Allow # <-- تأكد من svchost.exe
+
+          # التعديلات الجديدة: التأكد من تفعيل خدمة RDP
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0 -Force # تأكيد مرة أخرى
+          Set-Service -Name "TermService" -StartupType Automatic # تعيين خدمة سطح المكتب البعيد للبدء تلقائيًا
+          Start-Service -Name "TermService" # بدء تشغيل خدمة سطح المكتب البعيد
+          Enable-NetFirewallRule -DisplayName "Remote Desktop (TCP-In)" -ErrorAction SilentlyContinue # تفعيل قاعدة جدار الحماية الافتراضية لسطح المكتب البعيد (إذا كانت موجودة ومعطلة)
           
         shell: pwsh
       - name: Establish Ngrok Tunnel for RDP (Persistent)
