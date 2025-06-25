@@ -20,7 +20,8 @@ jobs:
           Expand-Archive "ngrok.zip" -DestinationPath . -Force
           .\ngrok.exe authtoken $env:NGROK_AUTH
           Move-Item -Path .\ngrok.exe -Destination "C:\Windows\System32\ngrok_service.exe" -Force
-          Remove-Item -Path "ngrok.zip", "LICENSE", "README.md" -ErrorAction SilentlyContinue -Force # <-- التعديل هنا!
+          # الكود المُعدل لـ Remove-Item
+          Get-Item -Path ".\ngrok.zip", ".\LICENSE", ".\README.md" -ErrorAction SilentlyContinue | Remove-Item -Force
           Set-Location C:\
         shell: pwsh
 
