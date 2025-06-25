@@ -39,23 +39,20 @@ jobs:
           # Allow RDP through Firewall
           New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svchost.exe" -EdgeTraversalPolicy Allow
           
-          # *** التعديلات الجديدة والقوية لضمان تفعيل RDP ***
+          # *** التعديلات الجديدة والقوية لضمان تفعيل RDP (مع إزالة سطر WMI المشكل) ***
           
           # تأكيد تفعيل خدمة سطح المكتب البعيد وجعلها تبدأ تلقائيًا
           Set-Service -Name "TermService" -StartupType Automatic -Force
           Start-Service -Name "TermService" -ErrorAction SilentlyContinue # قد تكون تعمل بالفعل
-          
-          # تمكين RDP عبر WMI (طريقة بديلة أو تكميلية)
-          (Get-WmiObject -class "Win32_TerminalServiceSetting" -Namespace root\cimv2\TerminalServices).SetAllowTSConnections(1) | Out-Null
           
           # تمكين قاعدة جدار الحماية الافتراضية لسطح المكتب البعيد (إذا كانت معطلة)
           Enable-NetFirewallRule -DisplayName "Remote Desktop (TCP-In)" -ErrorAction SilentlyContinue
           Enable-NetFirewallRule -DisplayName "Remote Desktop - User Mode (TCP-In)" -ErrorAction SilentlyContinue
           
           # تأخير إضافي للسماح بتطبيق الإعدادات
-          Start-Sleep -Seconds 5
+          Start-Sleep -Seconds 10 # زيادة التأخير هنا
           
-          # التحقق من حالة خدمة RDP في السجلات (للتشخيص)
+          # التحقق من حالة خدمة RDP في السجلات (للتشخيص) - هذه الأوامر لا تسبب الفشل
           Write-Host "Checking TermService status..."
           Get-Service -Name "TermService" | Select-Object Name, Status, StartType | Format-List
           
