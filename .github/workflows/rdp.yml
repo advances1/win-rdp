@@ -40,9 +40,15 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'PortNumber' -Value 3389 -Force
           
           # 3. Allow RDP through Firewall (removed -Force parameter)
-          New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svost.exe" -EdgeTraversalPolicy Allow
-        shell: pwsh
+          New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svchost.exe" -EdgeTraversalPolicy Allow # <-- تأكد من svchost.exe
 
+          # التعديلات الجديدة: التأكد من تفعيل خدمة RDP
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0 -Force # تأكيد مرة أخرى
+          Set-Service -Name "TermService" -StartupType Automatic # تعيين خدمة سطح المكتب البعيد للبدء تلقائيًا
+          Start-Service -Name "TermService" # بدء تشغيل خدمة سطح المكتب البعيد
+          Enable-NetFirewallRule -DisplayName "Remote Desktop (TCP-In)" -ErrorAction SilentlyContinue # تفعيل قاعدة جدار الحماية الافتراضية لسطح المكتب البعيد (إذا كانت موجودة ومعطلة)
+          
+        shell: pwsh
       - name: Establish Ngrok Tunnel for RDP (Persistent)
         run: |
           # 1. تعريف الإجراء للمهمة المجدولة (يمكن تحديثه هنا أيضًا للحصول على سجلات الثبات)
