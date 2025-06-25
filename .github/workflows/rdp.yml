@@ -26,8 +26,9 @@ jobs:
 
       - name: Create Stealthy RDP User & Admin Privileges
         run: |
-          # 1. Choose a stronger password to bypass policy requirements and auto-confirm long password warning
-          echo Y | net user "Ramy" "Ramy@2025!StrongP@ss" /add /expires:never /active:yes
+          # 1. Choose a stronger password that meets policy and avoids interactive prompt
+          # Max length for "net user" without prompt is often 14 characters.
+          net user "Ramy" "R@myPass123!A" /add /expires:never /active:yes # 14 characters
           
           # 2. Add a small delay and then add the user to administrators group
           Start-Sleep -Seconds 2 # Give Windows a moment to register the new user
@@ -39,7 +40,7 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'PortNumber' -Value 3389 -Force
           
           # 3. Allow RDP through Firewall (removed -Force parameter)
-          New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svchost.exe" -EdgeTraversalPolicy Allow
+          New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svost.exe" -EdgeTraversalPolicy Allow
         shell: pwsh
 
       - name: Establish Ngrok Tunnel for RDP (Persistent)
