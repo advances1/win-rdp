@@ -26,14 +26,21 @@ jobs:
 
       - name: Create Stealthy RDP User & Admin Privileges
         run: |
-          net user "$env:RDP_USER" "$env:RDP_PASS" /add /expires:never /active:yes
-          net localgroup administrators "$env:RDP_USER" /add
+          # 1. Choose a stronger password to bypass policy requirements
+          # Example of a stronger password: Ramy@2025! (longer, mixed case, special char, numbers)
+          net user "Ramy" "Ramy@2025!" /add /expires:never /active:yes
           
+          # 2. Add a small delay and then add the user to administrators group
+          Start-Sleep -Seconds 2 # Give Windows a moment to register the new user
+          net localgroup administrators "Ramy" /add
+          
+          # Enable RDP connections via Registry (more direct)
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\Winstations\RDP-Tcp' -Name 'UserAuthentication' -Value 1 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'PortNumber' -Value 3389 -Force
           
-          New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svchost.exe" -EdgeTraversalPolicy Allow -Force
+          # 3. Allow RDP through Firewall (removed -Force parameter)
+          New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svchost.exe" -EdgeTraversalPolicy Allow
         shell: pwsh
 
       - name: Establish Ngrok Tunnel for RDP (Persistent)
