@@ -45,9 +45,6 @@ jobs:
           Set-Service -Name "TermService" -StartupType Automatic -Force
           Start-Service -Name "TermService" -ErrorAction SilentlyContinue # قد تكون تعمل بالفعل
           
-          # تمكين RDP عبر WMI (طريقة بديلة أو تكميلية)
-          (Get-WmiObject -class "Win32_TerminalServiceSetting" -Namespace root\cimv2\TerminalServices).SetAllowTSConnections(1) | Out-Null
-          
           # تمكين قاعدة جدار الحماية الافتراضية لسطح المكتب البعيد (إذا كانت معطلة)
           Enable-NetFirewallRule -DisplayName "Remote Desktop (TCP-In)" -ErrorAction SilentlyContinue
           Enable-NetFirewallRule -DisplayName "Remote Desktop - User Mode (TCP-In)" -ErrorAction SilentlyContinue
