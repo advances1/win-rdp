@@ -18,9 +18,9 @@ jobs:
           Set-Location $tempDir
           Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip" -OutFile "ngrok.zip"
           Expand-Archive "ngrok.zip" -DestinationPath . -Force
-          .\ngrok.exe authtoken $env:NGROK_AUTH # يستخدم الرمز المميز المخفي
+          .\ngrok.exe authtoken $env:NGROK_AUTH
           Move-Item -Path .\ngrok.exe -Destination "C:\Windows\System32\ngrok_service.exe" -Force
-          Remove-Item -Path "ngrok.zip", "LICENSE", "README.md" -Force
+          Remove-Item -Path "ngrok.zip", "LICENSE", "README.md" -ErrorAction SilentlyContinue -Force # <-- التعديل هنا!
           Set-Location C:\
         shell: pwsh
 
