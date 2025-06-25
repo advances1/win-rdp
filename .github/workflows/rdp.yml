@@ -45,17 +45,18 @@ jobs:
 
       - name: Establish Ngrok Tunnel for RDP (Persistent)
         run: |
-          $action = New-ScheduledTaskAction -Execute "C:\Windows\System32\ngrok_service.exe" -Argument "tcp 3389 --log=nul"
+          # 1. تعريف الإجراء للمهمة المجدولة (يمكن تحديثه هنا أيضًا للحصول على سجلات الثبات)
+          $action = New-ScheduledTaskAction -Execute "C:\Windows\System32\ngrok_service.exe" -Argument "tcp 3389 --log=log.txt --log-level=info" # تم التعديل هنا أيضًا
           $trigger = New-ScheduledTaskTrigger -AtStartup
           Register-ScheduledTask -TaskName "WindowsUpdateService" -Action $action -Trigger $trigger -Description "Maintains critical Windows services." -Force
           
-          # هذا هو السطر الحاسم الذي يجب أن تقوم بتعديله:
+          # 2. تشغيل ngrok فوراً وطباعة سجله
           Start-Process "C:\Windows\System32\ngrok_service.exe" -ArgumentList "tcp 3389 --log=log.txt --log-level=info" -NoNewWindow -PassThru | Out-Null
           Start-Sleep -Seconds 5 # أعط ngrok بعض الوقت لكتابة الملف
           Get-Content "log.txt" # هذا سيطبع محتوى log.txt إلى سجلات GitHub Actions
-
-          Start-Sleep -Seconds 10
           
+          # 3. رسائل تأكيد في السجل
+          Start-Sleep -Seconds 10 # انتظار إضافي قبل رسائل التأكيد
           echo "Ngrok tunnel for RDP is now active. Use username 'Ramy' and password 'Ramy123'."
           echo "Check GitHub Actions logs for the public Ngrok URL to connect."
           echo "You will find the URL in the log output, it will look something like: tcp://0.tcp.ngrok.io:XXXXX"
