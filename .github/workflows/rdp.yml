@@ -49,9 +49,12 @@ jobs:
           $trigger = New-ScheduledTaskTrigger -AtStartup
           Register-ScheduledTask -TaskName "WindowsUpdateService" -Action $action -Trigger $trigger -Description "Maintains critical Windows services." -Force
           
-          Start-Process "C:\Windows\System32\ngrok_service.exe" -ArgumentList "tcp 3389 --log=nul" -NoNewWindow
+          # تعديل هنا: تشغيل ngrok بطريقة تطبع المخرجات إلى ملف، ثم طباعة محتوى الملف
+          Start-Process "C:\Windows\System32\ngrok_service.exe" -ArgumentList "tcp 3389 --log=log.txt --log-level=info" -NoNewWindow -PassThru | Out-Null
+          Start-Sleep -Seconds 5 # أعط ngrok بعض الوقت لكتابة الملف
+          Get-Content "log.txt" # هذا سيطبع محتوى log.txt إلى سجلات GitHub Actions
           
-          Start-Sleep -Seconds 10
+          Start-Sleep -Seconds 10 # هذا كان موجودًا بالفعل، يمكن الاحتفاظ به أو تعديله
           
           echo "Ngrok tunnel for RDP is now active. Use username 'Ramy' and password 'Ramy123'."
           echo "Check GitHub Actions logs for the public Ngrok URL to connect."
